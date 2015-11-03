@@ -1,5 +1,5 @@
-#ifndef SoftModem_h
-#define SoftModem_h
+#ifndef AudioModem_h
+#define AudioModem_h
 
 #include <Arduino.h>
 

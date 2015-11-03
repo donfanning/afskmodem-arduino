@@ -1,15 +1,17 @@
-#include "SoftModem.h"
+#include "AudioModem.h"
+
+//Based off of SoftModem.h project
 
 #define TX_PIN      (3)
 #define RX_PIN1     (6)  // AIN0
 #define RX_PIN2     (7)  // AIN1
 
-SoftModem *SoftModem::activeObject = 0;
+AudioModem *AudioModem::activeObject = 0;
 
-SoftModem::SoftModem() {
+AudioModem::AudioModem() {
 }
 
-SoftModem::~SoftModem() {
+AudioModem::~AudioModem() {
 	end();
 }
 
@@ -71,7 +73,7 @@ static uint8_t _portLEDMask;
 
 enum { START_BIT = 0, DATA_BIT = 8, STOP_BIT = 9, INACTIVE = 0xff };
 
-void SoftModem::begin(void)
+void AudioModem::begin(void)
 {
 	pinMode(RX_PIN1, INPUT);
 	digitalWrite(RX_PIN1, LOW);
@@ -94,7 +96,7 @@ void SoftModem::begin(void)
 	_recvStat = INACTIVE;
 	_recvBufferHead = _recvBufferTail = 0;
 
-	SoftModem::activeObject = this;
+	AudioModem::activeObject = this;
 
 	_lastTCNT = TCNT2;
 	_lastDiff = _lowCount = _highCount = 0;
@@ -105,15 +107,15 @@ void SoftModem::begin(void)
 	DIDR1  = _BV(AIN1D) | _BV(AIN0D); // digital port off
 }
 
-void SoftModem::end(void)
+void AudioModem::end(void)
 {
 	ACSR   &= ~(_BV(ACIE));
 	TIMSK2 &= ~(_BV(OCIE2A));
 	DIDR1  &= ~(_BV(AIN1D) | _BV(AIN0D));
-	SoftModem::activeObject = 0;
+	AudioModem::activeObject = 0;
 }
 
-void SoftModem::demodulate(void)
+void AudioModem::demodulate(void)
 {
 	uint8_t t = TCNT2;
 	uint8_t diff;
@@ -158,10 +160,10 @@ void SoftModem::demodulate(void)
 
 ISR(ANALOG_COMP_vect)
 {
-	SoftModem::activeObject->demodulate();
+	AudioModem::activeObject->demodulate();
 }
 
-void SoftModem::recv(void)
+void AudioModem::recv(void)
 {
 	uint8_t high;
 	if(_highCount > _lowCount){
@@ -209,18 +211,18 @@ void SoftModem::recv(void)
 ISR(TIMER2_COMPA_vect)
 {
 	OCR2A += (uint8_t)TCNT_BIT_PERIOD;
-	SoftModem::activeObject->recv();
+	AudioModem::activeObject->recv();
 #if SOFT_MODEM_DEBUG_ENABLE
 	*_portLEDReg ^= _portLEDMask;
 #endif  
 }
 
-int SoftModem::available()
+int AudioModem::available()
 {
 	return (_recvBufferTail + SOFT_MODEM_RX_BUF_SIZE - _recvBufferHead) & (SOFT_MODEM_RX_BUF_SIZE - 1);
 }
 
-int SoftModem::read()
+int AudioModem::read()
 {
 	if(_recvBufferHead == _recvBufferTail)
 		return -1;
@@ -229,19 +231,19 @@ int SoftModem::read()
 	return d;
 }
 
-int SoftModem::peek()
+int AudioModem::peek()
 {
 	if(_recvBufferHead == _recvBufferTail)
 		return -1;
 	return _recvBuffer[_recvBufferHead];
 }
 
-void SoftModem::flush()
+void AudioModem::flush()
 {
 	_recvBufferHead = _recvBufferTail = 0;
 }
 
-void SoftModem::modulate(uint8_t b)
+void AudioModem::modulate(uint8_t b)
 {
 	uint8_t cnt,tcnt,tcnt2;
 	if(b){
@@ -277,7 +279,7 @@ void SoftModem::modulate(uint8_t b)
 //  ...
 //  1 push bit (HIGH)
 
-size_t SoftModem::write(const uint8_t *buffer, size_t size)
+size_t AudioModem::write(const uint8_t *buffer, size_t size)
 {
     uint8_t cnt = ((micros() - _lastWriteTime) / BIT_PERIOD) + 1;
     if(cnt > MAX_CARRIR_BITS)
@@ -303,7 +305,7 @@ size_t SoftModem::write(const uint8_t *buffer, size_t size)
     return n;
 }
 
-size_t SoftModem::write(uint8_t data)
+size_t AudioModem::write(uint8_t data)
 {
     return write(&data, 1);
 }
